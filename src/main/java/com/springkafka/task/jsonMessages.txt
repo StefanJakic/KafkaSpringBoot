@@ -1,7 +1,0 @@
-    	this.template.send("topicTask1", "{\"callStatus\": \"START\", \"timestamp\": \"25555\", \"callId\": \"888\"}");
-    	this.template.send("topicTask1", "{\"callStatus\": \"END\", \"timestamp\": \"277\", \"callId\": \"888\"}");
-    	this.template.send("topicTask1", "{\"callStatus\": \"START\", \"timestamp\": \"88\", \"callId\": \"888\"}");
-    	this.template.send("topicTask1", "{\"callStatus\": \"END\", \"timestamp\": \"8\", \"callId\": \"888\"}");
-    	this.template.send("topicTask1", "{\"callStatus\": \"START\", \"timestamp\": \"500\", \"callId\": \"888\"}");
-    	this.template.send("topicTask1", "{\"callStatus\": \"END\", \"timestamp\": \"5000\", \"callId\": \"888\"}");
-    	this.template.send("topicTask1", "{\"callStatus\": \"END\", \"timestamp\": \"888888888\", \"callId\": \"888\"}");
