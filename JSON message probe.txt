@@ -1,0 +1,15 @@
+{"callStatus": "START", "timestamp" : "50", "callId" : "100"}
+{"callStatus": "END", "timestamp" : "250", "callId" : "100"}
+//start-end ->true
+
+{"callStatus": "END", "timestamp" : "12", "callId" : "200"}
+{"callStatus": "START", "timestamp" : "9", "callId" : "200"}
+//end-start ->true
+
+{"callStatus": "START", "timestamp" : "50", "callId" : "300"}
+{"callStatus": "END", "timestamp" : "30", "callId" : "300"}
+//start > end ->false
+
+{"callStatus": "START", "timestamp" : "80", "callId" : "400"}
+{"callStatus": "START", "timestamp" : "80", "callId" : "400"}
+//start-start ->false
