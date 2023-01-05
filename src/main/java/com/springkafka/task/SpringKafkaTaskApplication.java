@@ -1,11 +1,5 @@
 package com.springkafka.task;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
@@ -19,6 +13,7 @@ import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.springkafka.task.cache.EventMessageCache;
 
 @SpringBootApplication
 public class SpringKafkaTaskApplication {
@@ -27,21 +22,20 @@ public class SpringKafkaTaskApplication {
 	private static final String TOPIC_TWO = "topicTask2";
 	private static final String MSG_START_EVENT = "START";
 	private static final String MSG_END_EVENT = "END";
-	private static final Integer SCHEDULE_DELETE_TIMEOUT = 5;
-	private static final Integer DELETE_AFTER_SCHEDULE_TIMEOUT = 10;
 
-	// private static final InputStream TopicMsg = null;
 	public static Logger logger = LoggerFactory.getLogger(SpringKafkaTaskApplication.class);
-	private static Map<String, TopicMsg> cache = new HashMap<>();
-
-	private static Map<String, TopicMsg> messagesForDeleteCache = new HashMap<>();
-
+	
 	private static ObjectMapper objectMapper = new ObjectMapper();
-	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
+	
+	
 	public static void main(String[] args) {
 		SpringApplication.run(SpringKafkaTaskApplication.class, args); // .close();
 	}
+    	
+	@Autowired
+	private KafkaTemplate<String, String> template;
+	@Autowired
+	private EventMessageCache eventMessageCache;
 
 	@Bean
 	public NewTopic topicTask1() {
@@ -52,10 +46,8 @@ public class SpringKafkaTaskApplication {
 	public NewTopic topicTask2() {
 		return TopicBuilder.name(TOPIC_TWO).partitions(3).replicas(2).compact().build();
 	}
-
-	@Autowired
-	private KafkaTemplate<String, String> template;
-
+	
+	
 	@KafkaListener(topics = TOPIC_TWO)
 	public void listen2(ConsumerRecord<?, ?> cr) throws Exception {
 		logger.info("RECIVE MESSAGE ON TOPIC2: {}", cr.value().toString());
@@ -64,10 +56,10 @@ public class SpringKafkaTaskApplication {
 	@KafkaListener(topics = TOPIC_ONE)
 	public void listen(ConsumerRecord<?, ?> cr) throws Exception {
 
-		TopicMsg msg = null;
+		EventMessage msg = null;
 
 		try {
-			msg = objectMapper.readValue(cr.value().toString(), TopicMsg.class);
+			msg = objectMapper.readValue(cr.value().toString(), EventMessage.class);
 		} catch (Exception e) {
 			logger.error("Invalid message format!", e);
 		}
@@ -80,14 +72,13 @@ public class SpringKafkaTaskApplication {
 			return;
 
 		}
-
-		TopicMsg previousMessage = cache.get(msg.getCallId());
+		EventMessage previousMessage = eventMessageCache.getEventMessage(msg);
 
 		if (previousMessage == null) {
 			// Receive start and do not exist in cache with same id end/start .......
-			cache.put(msg.getCallId(), msg);
+			eventMessageCache.putEventMessage(msg);
 			if (msg.getCallStatus().equals(MSG_END_EVENT)) {
-				scheduleMessageDelete(msg);
+				eventMessageCache.scheduleMessageDelete(msg);
 			}
 			logger.info("Recived message: {}", msg);
 
@@ -100,7 +91,7 @@ public class SpringKafkaTaskApplication {
 				// end-id-250, end-id-250 : TODO Then? DELETE ALL OF THEM!
 				// if Received message is start, but already we have start message in cache
 				logger.error("Recive duplicate event");
-				cleanCacheForCallId(msg.getCallId());
+				eventMessageCache.cleanCacheForEventMessage(msg);
 				return;
 			}
 
@@ -118,7 +109,7 @@ public class SpringKafkaTaskApplication {
 			// Here we check case end less than start
 			if (startTimeTamp > endTimeTamp) {
 				logger.error("End timestamp < Start timestamp");
-				cleanCacheForCallId(msg.getCallId());
+				eventMessageCache.cleanCacheForEventMessage(msg);
 				return;
 			}
 
@@ -132,29 +123,8 @@ public class SpringKafkaTaskApplication {
 			template.send(TOPIC_TWO, msgAsJSON);
 			logger.info("JSON:  -------->" + msgAsJSON);
 			logger.info("Sending response to topic2");
-			cleanCacheForCallId(msg.getCallId());
+			eventMessageCache.cleanCacheForEventMessage(msg);
 		}
 
-	}
-
-	private void cleanCacheForCallId(String callId) {
-		cache.remove(callId);
-		messagesForDeleteCache.remove(callId);
-		logger.info("Clean cache for callId {}", callId);
-
-	}
-
-	private void scheduleMessageDelete(TopicMsg message) {
-		logger.info("scheduleMessageDelete is called");
-		scheduler.schedule(() -> {
-			messagesForDeleteCache.put(message.getCallId(), message);
-			logger.info("Message schedule for delete: {}", message);
-
-			scheduler.schedule(() -> {
-				logger.info("Deleting message via schedule");
-
-				cleanCacheForCallId(message.getCallId());
-			}, DELETE_AFTER_SCHEDULE_TIMEOUT, TimeUnit.MINUTES);
-		}, SCHEDULE_DELETE_TIMEOUT, TimeUnit.MINUTES);
 	}
 }

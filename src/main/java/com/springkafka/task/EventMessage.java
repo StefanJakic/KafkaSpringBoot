@@ -1,6 +1,6 @@
 package com.springkafka.task;
 
-public class TopicMsg {
+public class EventMessage {
 
 	private String callStatus;
 	private String callId;
