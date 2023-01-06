@@ -1,4 +1,4 @@
-package com.springkafka.task;
+package com.springkafka.task.messages;
 
 public class EventMessage {
 
@@ -32,6 +32,6 @@ public class EventMessage {
 
 	@Override
 	public String toString() {
-		return "TopicMsg [callStatus=" + callStatus + ", callId=" + callId + ", timestamp=" + timestamp;
+		return "EventMessage: [ callStatus=" + callStatus + ", timestamp=" + timestamp + ", callId=" + callId + "  ]";
 	}
 }
