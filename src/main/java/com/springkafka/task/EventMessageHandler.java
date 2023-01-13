@@ -30,7 +30,7 @@ public class EventMessageHandler implements MessageHandler {
 	@Autowired
 	private EventMessageCache eventMessageCache;
 	
-	private ObjectMapper objectMapper;// = new ObjectMapper();
+	private ObjectMapper objectMapper;
 
 	public void setObjectMapper(ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;

@@ -14,20 +14,15 @@ import org.springframework.kafka.config.TopicBuilder;
 
 @SpringBootApplication
 public class SpringKafkaTaskApplication {
-	//WORK
-//	@Value("${TOPIC_ONE}")
-//	private String TOPIC_ONE;
+
 	private static final String TOPIC_ONE = "topicTask1";
 
-	//WORK
-//	@Value("${TOPIC_TWO}")
-//	private String TOPIC_TWO;
 	private static final String TOPIC_TWO = "topicTask2";
 
 	public static Logger logger = LoggerFactory.getLogger(SpringKafkaTaskApplication.class);
 
 	public static void main(String[] args) {
-		SpringApplication.run(SpringKafkaTaskApplication.class, args); // .close();
+		SpringApplication.run(SpringKafkaTaskApplication.class, args);
 	}
 
 	@Bean
@@ -39,10 +34,4 @@ public class SpringKafkaTaskApplication {
 	public NewTopic topicTask2() {
 		return TopicBuilder.name(TOPIC_TWO).partitions(3).replicas(2).compact().build();
 	}
-
-	//@Autowired
-	//private KafkaEventMessageListener eventFilterResponseMessage;
-	
-	@Autowired
-	private IntegrationFlow fromKafkaFlow;
 }

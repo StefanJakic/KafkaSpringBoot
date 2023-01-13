@@ -13,14 +13,9 @@ import org.springframework.stereotype.Component;
 
 import com.springkafka.task.messages.EventMessage;
 
-//@Scope("singleton")
 @Component 
 public class EventMessageCache {
-	// In Java way to implement singleton:
-	// private static final EventMessageCache instance = new EventMessageCache();
-	// public static EventMessageCache getInstance() {
-	// return instance;
-	// }
+	
 	private static final Integer SCHEDULE_DELETE_TIMEOUT = 5;
 	private static final Integer DELETE_AFTER_SCHEDULE_TIMEOUT = 10;
 

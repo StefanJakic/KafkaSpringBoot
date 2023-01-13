@@ -2,24 +2,19 @@ package com.springkafka.task;
 
 import java.util.HashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.channel.PublishSubscribeChannel;
 import org.springframework.integration.config.EnableIntegration;
-import org.springframework.integration.core.GenericSelector;
 import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.dsl.Transformers;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.integration.kafka.dsl.Kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.springkafka.task.messages.EventMessage;
 
 @Configuration
 @EnableIntegration
@@ -34,11 +29,7 @@ public class EventKafkaFlow {
 	@Value("${MSG_END_EVENT}")
 	private String MSG_END_EVENT;
 	
-	private static Logger logger = LoggerFactory.getLogger(EventKafkaFlow.class);
-	
 	private ObjectMapper objectMapper = new ObjectMapper();
-
-	//private EventMessageHandler someHandler = new EventMessageHandler();
 	
 	@Bean
     public MyFilter myFilter(){
@@ -54,7 +45,7 @@ public class EventKafkaFlow {
 		return eventMessageHandler;
 	}
 	
-	
+	 
 	@Bean
 	public IntegrationFlow fromKafkaFlow(ConsumerFactory<String, Object> consumerFactory) {
 		return IntegrationFlow.from(Kafka.messageDrivenChannelAdapter(consumerFactory, INPUT))

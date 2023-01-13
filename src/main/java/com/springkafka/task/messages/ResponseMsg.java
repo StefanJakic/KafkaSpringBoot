@@ -7,7 +7,6 @@ public class ResponseMsg {
 	private Long callDuration;
 
 	public ResponseMsg(String callId, Long callStartTimestamp, Long callEndTimestamp) {
-		super();
 		this.callId = callId;
 		this.callStartTimestamp = callStartTimestamp;
 		this.callEndTimestamp = callEndTimestamp;
