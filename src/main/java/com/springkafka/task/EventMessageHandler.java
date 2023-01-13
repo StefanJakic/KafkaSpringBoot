@@ -1,75 +1,54 @@
 package com.springkafka.task;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.MessagingException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.springkafka.task.cache.EventMessageCache;
 import com.springkafka.task.messages.EventMessage;
 import com.springkafka.task.messages.ResponseMsg;
 
-
-//@Component
-public class KafkaEventMessageListener {
-
-	private static final String TOPIC_ONE = "topicTask1";
+public class EventMessageHandler implements MessageHandler {
 	
-	private static final String TOPIC_TWO = "topicTask2";
+	private static Logger logger = LoggerFactory.getLogger(EventMessageHandler.class);
 	
 	@Value("${MSG_START_EVENT}")
 	private String MSG_START_EVENT;
-//	private static final String MSG_START_EVENT = "START";
 	@Value("${MSG_END_EVENT}")
 	private String MSG_END_EVENT;
-//	private static final String MSG_END_EVENT = "END";
-	
-	private static Logger logger = LoggerFactory.getLogger(KafkaEventMessageListener.class);
-	
-	private ObjectMapper objectMapper = new ObjectMapper();
-
 	@Autowired
-	private KafkaTemplate<String, String> template;
+	IntegrationFlow toKafkaFlow;
+	
 	@Autowired
 	private EventMessageCache eventMessageCache;
 	
-	//ProbeClass config
-//	@Autowired
-//	private ProbeClass probeClass;
+	private ObjectMapper objectMapper;// = new ObjectMapper();
 
-	public KafkaEventMessageListener() {
-		logger.info("CREATED EventFilterResponseMessage");
+	public void setObjectMapper(ObjectMapper objectMapper) {
+		this.objectMapper = objectMapper;
 	}
 
-	
-	
-	@KafkaListener(topics = TOPIC_ONE)
-	public void listen(ConsumerRecord<?, ?> cr) throws Exception {
-		
-		//Probe Bean 
-	//	probeClass.probeClassInfo();
-		
+	@Override
+	public void handleMessage(Message<?> message) throws MessagingException {
+
 		EventMessage msg = null;
-
+		System.out.println("Message from handleMessage : " + message);
+		
+		String str = (String) message.getPayload();
 		try {
-			msg = objectMapper.readValue(cr.value().toString(), EventMessage.class);
+			msg = objectMapper.readValue(str, EventMessage.class);
 		} catch (Exception e) {
-			logger.error("Invalid message format!", e);
+			logger.error("Error :", e);
 		}
-
-		if (msg == null || msg.getTimestamp() == null || msg.getTimestamp() < 0
-				|| !(msg.getCallStatus().equalsIgnoreCase(MSG_START_EVENT)
-						|| msg.getCallStatus().equalsIgnoreCase(MSG_END_EVENT)) 
-				|| msg.getCallId() == null || msg.getCallId().isBlank()) {
-
-			System.out.println("ERORR: Invalid message inputs!");
-			return;
-
-		}
+		//Main logic
 		EventMessage previousMessage = eventMessageCache.getEventMessage(msg);
 
 		if (previousMessage == null) {
@@ -112,16 +91,31 @@ public class KafkaEventMessageListener {
 			// PATH
 
 			ResponseMsg responseMsg = new ResponseMsg(msg.getCallId(), startTimeTamp, endTimeTamp);
+			
+			String msgAsJSON= "";
+			try {
+				msgAsJSON = objectMapper.writeValueAsString(responseMsg);
+			} catch (JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
-			String msgAsJSON = objectMapper.writeValueAsString(responseMsg);
-
-			template.send(TOPIC_TWO, msgAsJSON);
+			//template.send(TOPIC_TWO, msgAsJSON);
 			logger.info("Sending response to topic2");
 
 			logger.info("Topic2 Received ResponseMesg.json: " + msgAsJSON);
 
 			eventMessageCache.cleanCacheForEventMessage(msg);
+			if(!msgAsJSON.isEmpty() || !msgAsJSON.isBlank()) {
+				toKafkaFlow.getInputChannel().send(MessageBuilder.withPayload(msgAsJSON).build());
+			} else {
+				logger.error("Fail to send toKafkaFlow");
+			}
 		}
-
+		
+		
+		
+		
 	}
+
 }

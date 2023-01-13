@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 
 import com.springkafka.task.messages.EventMessage;
 
-@Scope("singleton")
-@Component
+//@Scope("singleton")
+@Component 
 public class EventMessageCache {
 	// In Java way to implement singleton:
 	// private static final EventMessageCache instance = new EventMessageCache();
@@ -33,7 +33,7 @@ public class EventMessageCache {
 	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 	public EventMessageCache() {
-		logger.info("CREATED CACHE");
+		logger.info("EventMessageCache() CREATED CACHE");
 	}
 
 	public void putEventMessage(EventMessage message) {
