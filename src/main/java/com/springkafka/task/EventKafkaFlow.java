@@ -2,66 +2,71 @@ package com.springkafka.task;
 
 import java.util.HashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.channel.PublishSubscribeChannel;
-import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.integration.dsl.MessageChannels;
+import org.springframework.integration.dsl.Transformers;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.integration.kafka.dsl.Kafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.springkafka.task.messages.EventMessage;
 
 @Configuration
-@EnableIntegration
-@ConfigurationProperties("kafka")
-@EnableKafka
 public class EventKafkaFlow {
 	private static final String INPUT = "topicTask1";
 	private static final String OUTPUT = "topicTask2";
-	
-	@Value("${MSG_START_EVENT}")
+	private static final String ERROR_CHANNEL_NAME = "exceptionChannel";
+
+	private static Logger logger = LoggerFactory.getLogger(EventKafkaFlow.class);
+
+	@Value("${msg_start_event}")
 	private String MSG_START_EVENT;
-	@Value("${MSG_END_EVENT}")
+	@Value("${msg_end_event}")
 	private String MSG_END_EVENT;
-	
-	private ObjectMapper objectMapper = new ObjectMapper();
-	
+
 	@Bean
-    public MyFilter myFilter(){
-        MyFilter myFilter = new MyFilter();
-        myFilter.setObjectMapper(objectMapper);
-        return myFilter;
-    }
-	
-	@Bean
-	public EventMessageHandler someHandler() {
-		EventMessageHandler eventMessageHandler = new EventMessageHandler();
-		eventMessageHandler.setObjectMapper(objectMapper);
-		return eventMessageHandler;
-	}
-	
-	 
-	@Bean
-	public IntegrationFlow fromKafkaFlow(ConsumerFactory<String, Object> consumerFactory) {
-		return IntegrationFlow.from(Kafka.messageDrivenChannelAdapter(consumerFactory, INPUT))
-				.filter(myFilter())
-				.handle(someHandler())
-				.get();
+	public EventKafkaFilter eventKafkaFilter() {
+		EventKafkaFilter eventKafkaFilter = new EventKafkaFilter();
+		return eventKafkaFilter;
 	}
 
 	@Bean
-	public PublishSubscribeChannel someOutputChannell() {
+	public EventMessageHandler eventMessageHandler() {
+		EventMessageHandler eventMessageHandler = new EventMessageHandler();
+		return eventMessageHandler;
+	}
+
+	@Bean
+	public IntegrationFlow errorChannel() {
+		return IntegrationFlow.from(MessageChannels.direct(ERROR_CHANNEL_NAME))
+				.handle(p -> logger.error("errorChanell message invalid format {}", p)).get();
+	}
+
+	@Bean
+	public IntegrationFlow fromKafkaFlow(ConsumerFactory<String, Object> consumerFactory) {
+		return IntegrationFlow
+				.from(Kafka.messageDrivenChannelAdapter(consumerFactory, INPUT).errorChannel(ERROR_CHANNEL_NAME))
+
+				.transform(Transformers.fromJson(EventMessage.class)).filter(eventKafkaFilter())
+				.handle(eventMessageHandler()).filter((m) -> m != null).transform(Transformers.toJson())
+				.channel(kafkaOutputChannell()).get();
+
+	}
+
+	@Bean
+	public PublishSubscribeChannel kafkaOutputChannell() {
 		return new PublishSubscribeChannel();
 	}
 
 	@Bean
 	public IntegrationFlow toKafkaFlow(KafkaTemplate<String, HashMap<String, Object>> kafkaTemplate) {
-		return IntegrationFlow.from(someOutputChannell())
+		return IntegrationFlow.from(kafkaOutputChannell())
 				.handle(Kafka.outboundChannelAdapter(kafkaTemplate).topic(OUTPUT)).get();
 	}
 

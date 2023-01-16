@@ -8,14 +8,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.springkafka.task.messages.EventMessage;
 
-@Component 
+@Component
 public class EventMessageCache {
-	
+
 	private static final Integer SCHEDULE_DELETE_TIMEOUT = 5;
 	private static final Integer DELETE_AFTER_SCHEDULE_TIMEOUT = 10;
 
@@ -26,10 +25,6 @@ public class EventMessageCache {
 	private Map<String, EventMessage> messagesForDeleteCache = new ConcurrentHashMap<>();
 
 	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
-	public EventMessageCache() {
-		logger.info("EventMessageCache() CREATED CACHE");
-	}
 
 	public void putEventMessage(EventMessage message) {
 		cache.put(message.getCallId(), message);
@@ -49,6 +44,8 @@ public class EventMessageCache {
 	public void scheduleMessageDelete(EventMessage message) {
 		logger.info("scheduleMessageDelete is called");
 		scheduler.schedule(() -> {
+
+			// TODO I should check if message was handled already and clean it
 			messagesForDeleteCache.put(message.getCallId(), message);
 			logger.info("Message schedule for delete: {}", message);
 
@@ -56,6 +53,7 @@ public class EventMessageCache {
 				logger.info("Deleting message via schedule");
 
 				cleanCacheForEventMessage(message);
+
 			}, DELETE_AFTER_SCHEDULE_TIMEOUT, TimeUnit.MINUTES);
 		}, SCHEDULE_DELETE_TIMEOUT, TimeUnit.MINUTES);
 	}
