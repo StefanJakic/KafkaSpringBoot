@@ -22,9 +22,7 @@ public class EventMessageCache {
 
 	private Map<String, EventMessage> cache = new ConcurrentHashMap<>();
 
-	private Map<String, EventMessage> messagesForDeleteCache = new ConcurrentHashMap<>();
-
-	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3);
 
 	public void putEventMessage(EventMessage message) {
 		cache.put(message.getCallId(), message);
@@ -37,7 +35,6 @@ public class EventMessageCache {
 	public void cleanCacheForEventMessage(EventMessage message) {
 		String callId = message.getCallId();
 		cache.remove(callId);
-		messagesForDeleteCache.remove(callId);
 		logger.info("Clean cache for callId {}", callId);
 	}
 
@@ -45,17 +42,20 @@ public class EventMessageCache {
 		logger.info("scheduleMessageDelete is called");
 		scheduler.schedule(() -> {
 
-			// TODO I should check if message was handled already and clean it
-			messagesForDeleteCache.put(message.getCallId(), message);
 			logger.info("Message schedule for delete: {}", message);
 
-			scheduler.schedule(() -> {
-				logger.info("Deleting message via schedule");
+			deleteAfterTimeout(message);
 
-				cleanCacheForEventMessage(message);
-
-			}, DELETE_AFTER_SCHEDULE_TIMEOUT, TimeUnit.MINUTES);
 		}, SCHEDULE_DELETE_TIMEOUT, TimeUnit.MINUTES);
+	}
+
+	private void deleteAfterTimeout(EventMessage message) {
+		scheduler.schedule(() -> {
+			logger.info("Deleting message via schedule");
+
+			cleanCacheForEventMessage(message);
+
+		}, DELETE_AFTER_SCHEDULE_TIMEOUT, TimeUnit.MINUTES);
 	}
 
 }

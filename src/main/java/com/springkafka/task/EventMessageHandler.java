@@ -3,7 +3,6 @@ package com.springkafka.task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.integration.core.GenericHandler;
 import org.springframework.messaging.MessageHeaders;
 
@@ -15,13 +14,16 @@ public class EventMessageHandler implements GenericHandler<EventMessage> {
 
 	private static Logger logger = LoggerFactory.getLogger(EventMessageHandler.class);
 
-	@Value("${msg_start_event}")
 	private String msg_start_event;
-	@Value("${msg_end_event}")
 	private String msg_end_event;
 
 	@Autowired
 	private EventMessageCache eventMessageCache;
+
+	public EventMessageHandler(String msg_start_event, String msg_end_event) {
+		this.msg_start_event = msg_start_event;
+		this.msg_end_event = msg_end_event;
+	}
 
 	@Override
 	public Object handle(EventMessage payload, MessageHeaders headers) {
