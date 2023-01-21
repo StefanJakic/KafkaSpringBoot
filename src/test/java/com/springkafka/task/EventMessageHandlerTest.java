@@ -12,12 +12,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.integration.support.MessageBuilder;
-import org.springframework.test.context.TestPropertySource;
 
 import com.springkafka.task.cache.EventMessageCache;
 import com.springkafka.task.messages.EventMessage;
 
-@TestPropertySource(properties = { "msg_start_event=START", "msg_end_event=END" })
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class EventMessageHandlerTest {
