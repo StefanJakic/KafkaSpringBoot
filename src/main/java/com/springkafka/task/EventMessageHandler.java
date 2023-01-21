@@ -1,35 +1,39 @@
 package com.springkafka.task;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.integration.core.GenericHandler;
-import org.springframework.messaging.MessageHeaders;
+import org.springframework.integration.endpoint.MessageProducerSupport;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.MessagingException;
 
 import com.springkafka.task.cache.EventMessageCache;
 import com.springkafka.task.messages.EventMessage;
 import com.springkafka.task.messages.ResponseMsg;
 
-public class EventMessageHandler implements GenericHandler<EventMessage> {
+public class EventMessageHandler extends MessageProducerSupport implements MessageHandler {
 
 	private static Logger logger = LoggerFactory.getLogger(EventMessageHandler.class);
 
-	private String msg_start_event;
-	private String msg_end_event;
+	private String msgStartEvent;
+	private String msgEndEvent;
 
 	@Autowired
 	private EventMessageCache eventMessageCache;
 
-	public EventMessageHandler(String msg_start_event, String msg_end_event) {
-		this.msg_start_event = msg_start_event;
-		this.msg_end_event = msg_end_event;
+	public EventMessageHandler(String msgStartEvent, String msgEndEvent) {
+		super();
+		this.msgStartEvent = msgStartEvent;
+		this.msgEndEvent = msgEndEvent;
 	}
 
 	@Override
-	public Object handle(EventMessage payload, MessageHeaders headers) {
-
-		EventMessage msg = payload;
-		logger.info("Message from handleMessage : {}", payload);
+	public void handleMessage(Message<?> message) throws MessagingException {
+		EventMessage msg = (EventMessage) message.getPayload();
+		logger.info("Message from handleMessage : {}", msg);
 
 		// Main logic
 		EventMessage previousMessage = eventMessageCache.getEventMessage(msg);
@@ -37,11 +41,11 @@ public class EventMessageHandler implements GenericHandler<EventMessage> {
 		if (previousMessage == null) {
 			// Receive start and do not exist in cache with same id end/start .......
 			eventMessageCache.putEventMessage(msg);
-			if (msg.getCallStatus().equals(msg_end_event)) {
+			if (msg.getCallStatus().equals(msgEndEvent)) {
 				eventMessageCache.scheduleMessageDelete(msg);
 			}
 			logger.info("Received message: {}", msg);
-			return null;
+			return;
 		} else {
 
 			// If Receive message but message exist in cache with same status id
@@ -49,13 +53,13 @@ public class EventMessageHandler implements GenericHandler<EventMessage> {
 				eventMessageCache.putEventMessage(msg);
 
 				logger.error("Receive duplicate event");
-				return null;
+				return;
 			}
 
 			Long startTimeTamp = null;
 			Long endTimeTamp = null;
 
-			if (previousMessage.getCallStatus().equalsIgnoreCase(msg_start_event)) {
+			if (previousMessage.getCallStatus().equalsIgnoreCase(msgStartEvent)) {
 				startTimeTamp = previousMessage.getTimestamp();
 				endTimeTamp = msg.getTimestamp();
 			} else {
@@ -67,7 +71,7 @@ public class EventMessageHandler implements GenericHandler<EventMessage> {
 			if (startTimeTamp > endTimeTamp) {
 				logger.error("Start timestamp > End timestamp");
 				eventMessageCache.cleanCacheForEventMessage(msg);
-				return null;
+				return;
 			}
 
 			// Receive end event, and exist start in cache then calculate duration HAPPY
@@ -81,7 +85,10 @@ public class EventMessageHandler implements GenericHandler<EventMessage> {
 
 			eventMessageCache.cleanCacheForEventMessage(msg);
 
-			return responseMsg;
+			sendMessage(MessageBuilder.withPayload(responseMsg).build());
+
 		}
+
 	}
+
 }

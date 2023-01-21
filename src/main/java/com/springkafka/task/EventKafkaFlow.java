@@ -26,9 +26,9 @@ public class EventKafkaFlow {
 	private static Logger logger = LoggerFactory.getLogger(EventKafkaFlow.class);
 
 	@Value("${msg_start_event}")
-	private String msg_start_event;
+	private String msgStartEvent;
 	@Value("${msg_end_event}")
-	private String msg_end_event;
+	private String msgEndEvent;
 
 	@Bean
 	public EventKafkaFilter eventKafkaFilter() {
@@ -38,7 +38,7 @@ public class EventKafkaFlow {
 
 	@Bean
 	public EventMessageHandler eventMessageHandler() {
-		EventMessageHandler eventMessageHandler = new EventMessageHandler(msg_end_event, msg_end_event);
+		EventMessageHandler eventMessageHandler = new EventMessageHandler(msgStartEvent, msgEndEvent);
 		return eventMessageHandler;
 	}
 
@@ -56,9 +56,9 @@ public class EventKafkaFlow {
 				.transform(Transformers.fromJson(EventMessage.class))
 				.filter(eventKafkaFilter())
 				.handle(eventMessageHandler())
-				.filter((m) -> m != null)
 				.transform(Transformers.toJson())
-				.channel(kafkaOutputChannell()).get();
+				.channel(kafkaOutputChannell())
+				.get();
 
 	}
 
