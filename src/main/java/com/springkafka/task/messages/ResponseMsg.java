@@ -5,6 +5,9 @@ public class ResponseMsg {
 	private Long callStartTimestamp;
 	private Long callEndTimestamp;
 	private Long callDuration;
+	
+	public ResponseMsg() {
+	}
 
 	public ResponseMsg(String callId, Long callStartTimestamp, Long callEndTimestamp) {
 		this.callId = callId;
