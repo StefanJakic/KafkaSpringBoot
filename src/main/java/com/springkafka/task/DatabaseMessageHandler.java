@@ -28,7 +28,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 
 	private static ArrayBlockingQueue<ResponseMsg> queueCache = new ArrayBlockingQueue<>(CACHE_SIZE);
 
-	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(11); //newSingleThreadScheduledExecutor();
+	private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(); //newScheduledThreadPool(11);
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -48,13 +48,12 @@ public class DatabaseMessageHandler implements MessageHandler {
 	private void saveResponseMessageToDatabase(ResponseMsg message) {
 
 		logger.info("TRYING INSERT INTO kafka_messages MESSAGE --> ", message);
-			jdbcTemplate.update(
-					"INSERT INTO messages_kafka (callId, callStartTimestamp, callEndTimestamp, callDuration) "
-							+ "VALUES (?, ?, ?, ?)",
-					message.getCallId(), message.getCallStartTimestamp(),
-					message.getCallEndTimestamp(), message.getCallDuration());
-		
-		
+		jdbcTemplate.update(
+				"INSERT INTO messages_kafka (callId, callStartTimestamp, callEndTimestamp, callDuration) "
+						+ "VALUES (?, ?, ?, ?)",
+				message.getCallId(), message.getCallStartTimestamp(), message.getCallEndTimestamp(),
+				message.getCallDuration());
+
 	}
 
 	public void putResponseMessageToCacheQueue(ResponseMsg message) {
@@ -98,17 +97,23 @@ public class DatabaseMessageHandler implements MessageHandler {
 	private class CacheQueueMessagesForRetryingToSendToDatabase implements Runnable {
 		@Override
 		public void run() {
-			ResponseMsg msg = null;
-			try {
-				msg = queueCache.take();
-				saveResponseMessageToDatabase(msg);
-			} catch (Exception e) {
-				if (msg != null) {
-					putResponseMessageToCacheQueue(msg);
-				}
+			logger.error("USAO U RUN");
+			if (!queueCache.isEmpty()) {
+			//	while (true) {
+					logger.error("WHILE1");
 
-				logger.error("FAILD TO AGAIN SEND TO DB!", e.getMessage());
+					ResponseMsg msg = queueCache.peek();
+					try {
+						saveResponseMessageToDatabase(msg);
+						queueCache.remove();
+					} catch (Exception e) {
+						// putResponseMessageToCacheQueue(msg);
+						logger.error("FAILD TO AGAIN SEND TO DB", e.getMessage());
+				//		break;
+					}
+			//	}
 			}
+
 		}
 	}
 }
