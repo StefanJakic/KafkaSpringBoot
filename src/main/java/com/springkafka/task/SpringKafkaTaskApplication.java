@@ -24,11 +24,11 @@ public class SpringKafkaTaskApplication {
 
 	@Bean
 	public NewTopic topicTask1() {
-		return TopicBuilder.name(TOPIC_ONE).partitions(3).replicas(2).compact().build();
+		return TopicBuilder.name(TOPIC_ONE).build();
 	}
 
 	@Bean
 	public NewTopic topicTask2() {
-		return TopicBuilder.name(TOPIC_TWO).partitions(3).replicas(2).compact().build();
+		return TopicBuilder.name(TOPIC_TWO).build();
 	}
 }

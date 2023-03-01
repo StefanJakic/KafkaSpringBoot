@@ -28,7 +28,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 
 	private static ArrayBlockingQueue<ResponseMsg> queueCache = new ArrayBlockingQueue<>(CACHE_SIZE);
 
-	private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(); //newScheduledThreadPool(11);
+	private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -37,7 +37,6 @@ public class DatabaseMessageHandler implements MessageHandler {
 	private void init() {
 		scheduler.scheduleAtFixedRate(new CacheQueueMessagesForRetryingToSendToDatabase(), 0,
 				SCHEDULE_TRY_AGAIN_WRITE_TIMEOUT, TimeUnit.SECONDS);
-
 	}
 
 	@PreDestroy
@@ -53,7 +52,6 @@ public class DatabaseMessageHandler implements MessageHandler {
 						+ "VALUES (?, ?, ?, ?)",
 				message.getCallId(), message.getCallStartTimestamp(), message.getCallEndTimestamp(),
 				message.getCallDuration());
-
 	}
 
 	public void putResponseMessageToCacheQueue(ResponseMsg message) {
@@ -73,7 +71,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 	public void handleMessage(Message<?> message) throws MessagingException {
 		ResponseMsg msg = (ResponseMsg) message.getPayload();
 
-		logger.info("Message from handleMessage FOR DATABASE! : {}", msg);
+		logger.info("Response message from handleMessage for database! : {}", msg);
 
 		tryToSendToDatabase(msg);
 
@@ -86,7 +84,7 @@ public class DatabaseMessageHandler implements MessageHandler {
 				saveResponseMessageToDatabase(message);
 			} catch (Exception e) {
 				putResponseMessageToCacheQueue(message);
-				logger.error("WHAT ERROR WE GET " + e.getMessage());
+				logger.error("Fail to send message to database " + e.getMessage());
 			}
 		} else {
 			putResponseMessageToCacheQueue(message);
@@ -97,21 +95,20 @@ public class DatabaseMessageHandler implements MessageHandler {
 	private class CacheQueueMessagesForRetryingToSendToDatabase implements Runnable {
 		@Override
 		public void run() {
-			logger.error("USAO U RUN");
+			// logger.error("[MARKER : WE ARE IN RUN METHOD]");
 			if (!queueCache.isEmpty()) {
-			//	while (true) {
-					logger.error("WHILE1");
+				while (true) {
+					// logger.error("[MARKER: WE ARE IN WHILE]");
 
 					ResponseMsg msg = queueCache.peek();
 					try {
 						saveResponseMessageToDatabase(msg);
 						queueCache.remove();
 					} catch (Exception e) {
-						// putResponseMessageToCacheQueue(msg);
 						logger.error("FAILD TO AGAIN SEND TO DB", e.getMessage());
-				//		break;
+						break;
 					}
-			//	}
+				}
 			}
 
 		}
