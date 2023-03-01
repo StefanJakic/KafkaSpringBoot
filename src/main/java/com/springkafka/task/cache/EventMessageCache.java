@@ -23,6 +23,8 @@ public class EventMessageCache {
 	private Map<String, EventMessage> cache = new ConcurrentHashMap<>();
 
 	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3);
+	
+	
 
 	public void putEventMessage(EventMessage message) {
 		cache.put(message.getCallId(), message);
@@ -52,7 +54,9 @@ public class EventMessageCache {
 	private void deleteAfterTimeout(EventMessage message) {
 		scheduler.schedule(() -> {
 			logger.info("Deleting message via schedule");
-
+			
+			
+			
 			cleanCacheForEventMessage(message);
 
 		}, DELETE_AFTER_SCHEDULE_TIMEOUT, TimeUnit.MINUTES);

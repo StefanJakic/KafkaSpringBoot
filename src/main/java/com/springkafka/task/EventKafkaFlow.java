@@ -2,29 +2,20 @@ package com.springkafka.task;
 
 import java.util.HashMap;
 
-import javax.sql.DataSource;
-
-import org.apache.kafka.common.message.JoinGroupResponseData.JoinGroupResponseMember;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.channel.PublishSubscribeChannel;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.dsl.Transformers;
-import org.springframework.kafka.core.ConsumerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.integration.kafka.dsl.Kafka;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.springkafka.task.messages.EventMessage;
 import com.springkafka.task.messages.ResponseMsg;
 
@@ -41,10 +32,14 @@ public class EventKafkaFlow {
 	@Value("${msg_end_event}")
 	private String msgEndEvent;
 	
+//	probe
+//	@Bean
+//	public EventMessageHandlerWritingToDataBase2 eventMessageHandlerWritingToDataBase2() {
+//		EventMessageHandlerWritingToDataBase2 e = new EventMessageHandlerWritingToDataBase2();
+//		return e;
+//	}
 	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-		
+	
 	@Bean
 	public EventKafkaFilter eventKafkaFilter() {
 		EventKafkaFilter eventKafkaFilter = new EventKafkaFilter();
@@ -56,6 +51,13 @@ public class EventKafkaFlow {
 		EventMessageHandler eventMessageHandler = new EventMessageHandler(msgStartEvent, msgEndEvent);
 		return eventMessageHandler;
 	}
+	
+	@Bean
+	public DatabaseMessageHandler databaseMessageHandler() {
+		DatabaseMessageHandler eventMessageHandlerWritingToDataBase = new DatabaseMessageHandler();
+		return eventMessageHandlerWritingToDataBase;
+	}
+	
 
 	@Bean
 	public IntegrationFlow errorChannel() {
@@ -85,43 +87,17 @@ public class EventKafkaFlow {
 	@Bean
 	public IntegrationFlow toKafkaFlow(KafkaTemplate<String, HashMap<String, Object>> kafkaTemplate) {
 		return IntegrationFlow.from(kafkaOutputChannell())
-				.handle(Kafka.outboundChannelAdapter(kafkaTemplate).topic(OUTPUT)).get();
+				.handle(Kafka.outboundChannelAdapter(kafkaTemplate).topic(OUTPUT))
+				.get();
 	}
 	
 	@Bean
 	public IntegrationFlow toDBFlow(JdbcTemplate jdbcTemplate) {
-		return IntegrationFlow.from(kafkaOutputChannell()).handle((payload, headers) -> {
-			
-			
-			ObjectMapper mapper = new ObjectMapper();
-			ResponseMsg msg;
-			try {
-				msg = mapper.readValue(payload.toString(), ResponseMsg.class);
-				System.out.println(msg.getCallId());
-
-				jdbcTemplate.update(
-						"INSERT INTO kafka_messages (callId, callStartTimestamp, callEndTimestamp, callDuration) "
-								+ "VALUES (?, ?, ?, ?)",
-						msg.getCallId(), msg.getCallStartTimestamp().toString(), msg.getCallEndTimestamp().toString(),
-						msg.getCallDuration().toString());
-
-			} catch (JsonMappingException e) {
-				e.printStackTrace();
-			} catch (JsonProcessingException e) {
-				e.printStackTrace();
-			} catch (Exception e) {
-				
-				
-				System.out.println("WHAT ERROR WE GET " +  e.getMessage());
-				
-				//add message to que cache()
-				//in seperate executor there try to again call insert into
-			}
-
-			return null;
-		}).get();
+		return IntegrationFlow.from(kafkaOutputChannell())
+				.transform(Transformers.fromJson(ResponseMsg.class))
+				.handle(databaseMessageHandler())
+			//	.handle(eventMessageHandlerWritingToDataBase2())
+				.get();
 	}
 	
-	
-
 }
