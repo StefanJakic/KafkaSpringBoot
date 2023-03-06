@@ -12,19 +12,40 @@ import org.springframework.stereotype.Component;
 
 import com.springkafka.task.messages.EventMessage;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
 @Component
 public class EventMessageCache {
 
-	private static final Integer SCHEDULE_DELETE_TIMEOUT = 5;
-	private static final Integer DELETE_AFTER_SCHEDULE_TIMEOUT = 10;
+	private static final Integer SCHEDULE_DELETE_TIMEOUT = 1;//5;
+	private static final Integer DELETE_AFTER_SCHEDULE_TIMEOUT = 2;//10;
+	private static final long EXECUTOR_SHUTDOWN_TIMEOUT_MINUTES = 5;
 
 	private static Logger logger = LoggerFactory.getLogger(EventMessageCache.class);
 
 	private Map<String, EventMessage> cache = new ConcurrentHashMap<>();
 
-	private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(3);
-	
-	
+	private ScheduledExecutorService scheduler = null;
+
+	@PostConstruct
+	private void init() {
+		scheduler = Executors.newScheduledThreadPool(3);
+
+	}
+
+	@PreDestroy
+	public void destroy() {
+		scheduler.shutdown();
+		try {
+			if (!scheduler.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
+				scheduler.shutdownNow();
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			scheduler.shutdownNow();
+		}
+	}
 
 	public void putEventMessage(EventMessage message) {
 		cache.put(message.getCallId(), message);
@@ -34,31 +55,37 @@ public class EventMessageCache {
 		return cache.get(message.getCallId());
 	}
 
-	public void cleanCacheForEventMessage(EventMessage message) {
+	public boolean cleanCacheForEventMessage(EventMessage message) {
 		String callId = message.getCallId();
-		cache.remove(callId);
-		logger.info("Clean cache for callId {}", callId);
+		if(null != cache.remove(callId)) {
+			logger.info("Clean cache for callId {}", callId);
+			return true;
+		}
+		return false;
 	}
+
 
 	public void scheduleMessageDelete(EventMessage message) {
 		logger.info("scheduleMessageDelete is called");
 		scheduler.schedule(() -> {
-
-			logger.info("Message schedule for delete: {}", message);
-
-			deleteAfterTimeout(message);
-
+			
+			if(cache.get(message.getCallId()) != null) {
+				logger.info("Message schedule for delete: {}", message);
+				deleteAfterTimeout(message);
+			}
+			
 		}, SCHEDULE_DELETE_TIMEOUT, TimeUnit.MINUTES);
 	}
 
 	private void deleteAfterTimeout(EventMessage message) {
 		scheduler.schedule(() -> {
-			logger.info("Deleting message via schedule");
 			
 			
+			if(cleanCacheForEventMessage(message) == true) {
+				logger.info("Message is deleted via schedule");
+			}
 			
-			cleanCacheForEventMessage(message);
-
+			
 		}, DELETE_AFTER_SCHEDULE_TIMEOUT, TimeUnit.MINUTES);
 	}
 

@@ -24,6 +24,8 @@ public class DatabaseMessageHandler implements MessageHandler {
 
 	private static final Integer CACHE_SIZE = 10;
 
+	private static final long EXECUTOR_SHUTDOWN_TIMEOUT_MINUTES = 5;
+
 	private static Logger logger = LoggerFactory.getLogger(DatabaseMessageHandler.class);
 
 	private static ArrayBlockingQueue<ResponseMsg> queueCache = new ArrayBlockingQueue<>(CACHE_SIZE);
@@ -35,17 +37,27 @@ public class DatabaseMessageHandler implements MessageHandler {
 
 	@PostConstruct
 	private void init() {
-		scheduler.scheduleAtFixedRate(new CacheQueueMessagesForRetryingToSendToDatabase(), 0,
-				SCHEDULE_TRY_AGAIN_WRITE_TIMEOUT, TimeUnit.SECONDS);
+		scheduleSendingMessagesFromCache();
 	}
 
 	@PreDestroy
 	private void destroy() {
 		scheduler.shutdown();
+		try {
+			if (!scheduler.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
+				scheduler.shutdownNow();
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			scheduler.shutdownNow();
+		}
 	}
 
 	private void saveResponseMessageToDatabase(ResponseMsg message) {
-
+		if (message == null) {
+			return;
+		}
+		
 		logger.info("TRYING INSERT INTO kafka_messages MESSAGE --> ", message);
 		jdbcTemplate.update(
 				"INSERT INTO messages_kafka (callId, callStartTimestamp, callEndTimestamp, callDuration) "
@@ -92,25 +104,25 @@ public class DatabaseMessageHandler implements MessageHandler {
 
 	}
 
-	private class CacheQueueMessagesForRetryingToSendToDatabase implements Runnable {
-		@Override
-		public void run() {
-			// logger.error("[MARKER : WE ARE IN RUN METHOD]");
+	private void scheduleSendingMessagesFromCache() {
+		scheduler.scheduleAtFixedRate(() -> {
 			if (!queueCache.isEmpty()) {
 				while (true) {
-					// logger.error("[MARKER: WE ARE IN WHILE]");
-
+					
 					ResponseMsg msg = queueCache.peek();
+					if (msg == null) {
+						break;
+					}
 					try {
 						saveResponseMessageToDatabase(msg);
 						queueCache.remove();
 					} catch (Exception e) {
-						logger.error("FAILD TO AGAIN SEND TO DB", e.getMessage());
+						logger.error("FAILD TO AGAIN SEND TO DB", e);
 						break;
 					}
 				}
 			}
-
-		}
+		}, 0, SCHEDULE_TRY_AGAIN_WRITE_TIMEOUT, TimeUnit.SECONDS);
 	}
+
 }

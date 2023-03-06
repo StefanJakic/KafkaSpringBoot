@@ -32,14 +32,6 @@ public class EventKafkaFlow {
 	@Value("${msg_end_event}")
 	private String msgEndEvent;
 	
-//	probe
-//	@Bean
-//	public EventMessageHandlerWritingToDataBase2 eventMessageHandlerWritingToDataBase2() {
-//		EventMessageHandlerWritingToDataBase2 e = new EventMessageHandlerWritingToDataBase2();
-//		return e;
-//	}
-	
-	
 	@Bean
 	public EventKafkaFilter eventKafkaFilter() {
 		EventKafkaFilter eventKafkaFilter = new EventKafkaFilter();
@@ -96,8 +88,7 @@ public class EventKafkaFlow {
 		return IntegrationFlow.from(kafkaOutputChannell())
 				.transform(Transformers.fromJson(ResponseMsg.class))
 				.handle(databaseMessageHandler())
-			//	.handle(eventMessageHandlerWritingToDataBase2())
 				.get();
 	}
-	
+
 }
