@@ -33,4 +33,10 @@ public class ResponseMsg {
 		return callDuration;
 	}
 
+	@Override
+	public String toString() {
+		return "ResponseMsg [callId=" + callId + ", callStartTimestamp=" + callStartTimestamp + ", callEndTimestamp="
+				+ callEndTimestamp + ", callDuration=" + callDuration + "]";
+	}
+
 }

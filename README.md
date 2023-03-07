@@ -1,6 +1,6 @@
 # Kafka Event Task
 
-This is a Spring Boot application which consumes JSON messages from one Kafka Topic, process them, filters the invalid messages, and sends the messages that are valid to another Kafka Topic.
+This is a Spring Boot application which consumes JSON messages from one Kafka Topic, process them, filters the invalid messages, and sends the valid messages to another Kafka Topic and saves them to the database.
 
 Spring Integration is using a message-driven channel adapter to receive messages from an external system, in our case from Kafka. Then, it is passing the messages to our custom filter, and then valid messages to our handler for processing.
 
@@ -18,17 +18,19 @@ The handler will check received messages in the following fashion:
 
 - If the message is a `START` event then save it to the cash.
 - If the message is an `END` event and the cash has the `START` event with the same `callId`, then calculate the call duration, and pass it to the outbound channel using the output format. The cash for this `callId` should be cleaned up after sending the message.
-- If the message is an `END` event but doesn't have the matching `START` message, it should be marked for deletion after 5 minutes, and deleted after 10 minutes.
+- If the message is an `END` event but doesn't have the matching `START` message, it should be marked for deletion after *5 minutes*, and deleted after *10 minutes*.
 - If the message is an `END` event but the timestamp is less than the `START` event timestamp, and error should be logged and all messages with this `callId` should be deleted from the cash.
 
-The cash is a custom class with two maps, one for caching `START` messages, and one for the messages that are marked for deletion.
+The cash is a custom class with a map for caching `START` and `END` messages and for the messages that are marked for deletion.
 
-After processing a message, the handler is passing messages to the outbound channel. The outbound channel adapter listens for messages from this channel and is passing them further to the output Kafka topic.
+After processing the messages, the handler is passing these messages to the outbound channel. From there the messages are sent to the Kafka topic and saved to the database.
+
 
 ## Technologies
 
 - Spring Boot
 - Spring Integration
 - Kafka
+- PostgreSQL
 - Logback
 - Maven
