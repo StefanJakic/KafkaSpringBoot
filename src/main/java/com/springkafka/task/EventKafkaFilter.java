@@ -3,11 +3,9 @@ package com.springkafka.task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.integration.core.GenericSelector;
-
 import com.springkafka.task.messages.EventMessage;
 
-public class EventKafkaFilter{ // implements  GenericSelector<EventMessage> {
+public class EventKafkaFilter {
 
 	public static Logger logger = LoggerFactory.getLogger(EventKafkaFilter.class);
 
@@ -16,9 +14,7 @@ public class EventKafkaFilter{ // implements  GenericSelector<EventMessage> {
 	@Value("${msg_end_event}")
 	private String msg_end_event;
 
-
-	public EventMessage accept(EventMessage source) {
-		EventMessage msg = source;
+	public EventMessage accept(EventMessage msg) {
 		logger.info("FILTER !");
 
 		if (msg == null || msg.getTimestamp() == null || msg.getCallId() == null) {

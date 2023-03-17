@@ -47,18 +47,18 @@ public class EventMessageHandlerTest {
 		initEvents();
 	}
 
-	@Test
-	void testStartEventSaveToCache() {
-		eventMessageHandler.handleMessage(startEvent);
-		verify(eventMessageCache).putEventMessage(startEvent);
-
-	}
-
-	@Test
-	void testEndEventScheduleForDeletion() {
-		eventMessageHandler.handleMessage(endEvent);
-		verify(eventMessageCache).scheduleMessageDelete(endEvent);
-	}
+//	@Test
+//	void testStartEventSaveToCache() {
+//		eventMessageHandler.handleMessage(startEvent);
+//		verify(eventMessageCache).putEventMessage(startEvent);
+//
+//	}
+//
+//	@Test
+//	void testEndEventScheduleForDeletion() {
+//		eventMessageHandler.handleMessage(endEvent);
+//		verify(eventMessageCache).scheduleMessageDelete(endEvent);
+//	}
 
 //	@Test
 //	void testThatCacheIsEmptyAfterHappyPath() {

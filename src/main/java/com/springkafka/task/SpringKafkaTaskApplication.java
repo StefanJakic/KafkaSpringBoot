@@ -55,8 +55,7 @@ public class SpringKafkaTaskApplication {
 		return TopicBuilder.name(TOPIC_TWO).build();
 	}
 
-	String msgForTopic2 = "";
-
+	
 	// when create java application or script, we send message with key, because we
 	// want to force to messages with same call id go to same partition
 	// this.template.send(TOPIC_TWO, "key" ,msgForTopic2); for example middle
@@ -64,7 +63,7 @@ public class SpringKafkaTaskApplication {
 	// key(anyway we have just one partiton)
 	// key can be
 	@KafkaListener(topics = TOPIC_ONE)
-	public void listen(ConsumerRecord<?, ?> cr) throws Exception {
+	public void listen(ConsumerRecord<String, String> cr) throws Exception {
 		logger.info(cr.toString());
 
 		// TODO:
@@ -75,7 +74,7 @@ public class SpringKafkaTaskApplication {
 		 * if(cr.key()==null) { logger.error("Message need to have key!) return; }
 		 */
 
-		msgForTopic2 = cr.value().toString();
+		String msgForTopic2 = cr.value().toString();
 
 		EventMessage msg = null;
 		ObjectMapper mapper = new ObjectMapper();
@@ -87,6 +86,7 @@ public class SpringKafkaTaskApplication {
 																		// null
 		} catch (Exception e) {
 			logger.error("Message need be in JSON format! ", e.getMessage());
+			return;
 		}
 
 		// if json message have have valid inputs, then it will return EventMessage
@@ -95,21 +95,18 @@ public class SpringKafkaTaskApplication {
 		// as parameter it will return null
 		msg = eventKafkaFilter.accept(msg);
 
-		if (msg != null) {
-
-			responseMsg = eventMessageHandler.handleMessage(msg);
-
-			if (responseMsg != null) {
-				databaseMessageHandler.handleMessage(responseMsg);
-
-				sendMessageToTopicTwo(responseMsg.toString());
-
-			} else {
-				return;
-			}
-		} else {
+		if (msg == null) {
 			return;
 		}
+		responseMsg = eventMessageHandler.handleMessage(msg);
+
+		if (responseMsg == null) {
+			return;
+		}
+		
+		databaseMessageHandler.handleMessage(responseMsg);
+
+		sendMessageToTopicTwo(responseMsg.toString());
 
 	}
 
@@ -118,7 +115,7 @@ public class SpringKafkaTaskApplication {
 	}
 
 	@KafkaListener(topics = TOPIC_TWO)
-	public void listen2(ConsumerRecord<?, ?> cr) throws Exception {
+	public void listen2(ConsumerRecord<String, String> cr) throws Exception {
 		logger.info("Messages from topic 2 ", cr.toString());
 	}
 
