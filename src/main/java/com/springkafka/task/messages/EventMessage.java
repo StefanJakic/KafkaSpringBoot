@@ -6,6 +6,9 @@ public class EventMessage {
 	private String callId;
 	private Long timestamp;
 
+	public EventMessage() {}
+	
+	
 	public String getCallStatus() {
 		return callStatus;
 	}
@@ -34,4 +37,5 @@ public class EventMessage {
 	public String toString() {
 		return "EventMessage: [ callStatus=" + callStatus + ", timestamp=" + timestamp + ", callId=" + callId + "  ]";
 	}
+
 }

@@ -2,13 +2,14 @@
 
 This is a Spring Boot application which consumes JSON messages from one Kafka Topic, process them, filters the invalid messages, and sends the valid messages to another Kafka Topic and saves them to the database.
 
-Spring Integration is using a message-driven channel adapter to receive messages from an external system, in our case from Kafka. Then, it is passing the messages to our custom filter, and then valid messages to our handler for processing.
+Spring is using a kafka listener to receive messages from an external system. Then, it is passing the messages to our custom filter, and then valid messages to our handler for processing.
 
-The message from the inbound channel is in the following JSON format:
+
+The message from the topic1 is in the following JSON format:
 
 	{"callStatus": "START", "timestamp": "1668670990536" (some unix timestamp), "callId": "1232131"}
 
-The message for the outbound channel is in the following JSON format:
+The message for the topic2 channel is in the following JSON format:
 
 	{"call_start_timestamp": "1668670990536", "call_end_timestamp": "1668670990538", "call_duration": 2, "callId": "1232131"}
 
@@ -23,13 +24,12 @@ The handler will check received messages in the following fashion:
 
 The cash is a custom class with a map for caching `START` and `END` messages and for the messages that are marked for deletion.
 
-After processing the messages, the handler is passing these messages to the outbound channel. From there the messages are sent to the Kafka topic and saved to the database.
+After processing the messages, the handler is passing these messages to the are sent to the Kafka topic and saved to the database.
 
 
 ## Technologies
 
 - Spring Boot
-- Spring Integration
 - Kafka
 - PostgreSQL
 - Logback

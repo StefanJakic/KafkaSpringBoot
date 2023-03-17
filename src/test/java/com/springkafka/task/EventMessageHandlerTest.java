@@ -1,6 +1,7 @@
 package com.springkafka.task;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,7 +12,6 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.integration.support.MessageBuilder;
 
 import com.springkafka.task.cache.EventMessageCache;
 import com.springkafka.task.messages.EventMessage;
@@ -49,14 +49,14 @@ public class EventMessageHandlerTest {
 
 	@Test
 	void testStartEventSaveToCache() {
-		eventMessageHandler.handleMessage(MessageBuilder.withPayload(startEvent).build());
+		eventMessageHandler.handleMessage(startEvent);
 		verify(eventMessageCache).putEventMessage(startEvent);
 
 	}
 
 	@Test
 	void testEndEventScheduleForDeletion() {
-		eventMessageHandler.handleMessage(MessageBuilder.withPayload(endEvent).build());
+		eventMessageHandler.handleMessage(endEvent);
 		verify(eventMessageCache).scheduleMessageDelete(endEvent);
 	}
 

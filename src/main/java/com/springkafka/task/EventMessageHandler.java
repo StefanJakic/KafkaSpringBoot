@@ -4,17 +4,12 @@ package com.springkafka.task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.integration.endpoint.MessageProducerSupport;
-import org.springframework.integration.support.MessageBuilder;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHandler;
-import org.springframework.messaging.MessagingException;
 
 import com.springkafka.task.cache.EventMessageCache;
 import com.springkafka.task.messages.EventMessage;
 import com.springkafka.task.messages.ResponseMsg;
 
-public class EventMessageHandler extends MessageProducerSupport implements MessageHandler {
+public class EventMessageHandler{
 
 	private static Logger logger = LoggerFactory.getLogger(EventMessageHandler.class);
 
@@ -30,9 +25,8 @@ public class EventMessageHandler extends MessageProducerSupport implements Messa
 		this.msgEndEvent = msgEndEvent;
 	}
 
-	@Override
-	public void handleMessage(Message<?> message) throws MessagingException {
-		EventMessage msg = (EventMessage) message.getPayload();
+	public ResponseMsg handleMessage(EventMessage message) {
+		EventMessage msg = message;
 		logger.info("Message from handleMessage : {}", msg);
 
 		// Main logic
@@ -45,7 +39,7 @@ public class EventMessageHandler extends MessageProducerSupport implements Messa
 				eventMessageCache.scheduleMessageDelete(msg);
 			}
 			logger.info("Received message: {}", msg);
-			return;
+			return null;
 		} else {
 
 			// If Receive message but message exist in cache with same status id
@@ -53,7 +47,7 @@ public class EventMessageHandler extends MessageProducerSupport implements Messa
 				eventMessageCache.putEventMessage(msg);
 
 				logger.error("Receive duplicate event");
-				return;
+				return null;
 			}
 
 			Long startTimeTamp = null;
@@ -71,21 +65,25 @@ public class EventMessageHandler extends MessageProducerSupport implements Messa
 			if (startTimeTamp > endTimeTamp) {
 				logger.error("Start timestamp > End timestamp");
 				eventMessageCache.cleanCacheForEventMessage(msg);
-				return;
+				return null;
 			}
 
 			// Receive end event, and exist start in cache then calculate duration HAPPY
 			// PATH
 
 			ResponseMsg responseMsg = new ResponseMsg(msg.getCallId(), startTimeTamp, endTimeTamp);
+			
+			//then we return this message to our main program, and send it to db, and topic to and after it clean cache
 
 			logger.info("Sending response to topic2");
 
 			logger.info("Topic2 Received ResponseMesg.json: " + responseMsg);
 
 			eventMessageCache.cleanCacheForEventMessage(msg);
-
-			sendMessage(MessageBuilder.withPayload(responseMsg).build());
+			
+			
+			return responseMsg;
+			//sendMessage(MessageBuilder.withPayload(responseMsg).build());
 
 		}
 

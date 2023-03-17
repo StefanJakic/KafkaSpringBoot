@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
 
 import com.springkafka.task.messages.ResponseMsg;
@@ -18,7 +16,7 @@ import com.springkafka.task.messages.ResponseMsg;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
-public class DatabaseMessageHandler implements MessageHandler {
+public class DatabaseMessageHandler {
 
 	private static final Integer SCHEDULE_TRY_AGAIN_WRITE_TIMEOUT = 5;
 
@@ -79,9 +77,8 @@ public class DatabaseMessageHandler implements MessageHandler {
 		}
 	}
 
-	@Override
-	public void handleMessage(Message<?> message) throws MessagingException {
-		ResponseMsg msg = (ResponseMsg) message.getPayload();
+	public void handleMessage(ResponseMsg message) throws MessagingException {
+		ResponseMsg msg = message;
 
 		logger.info("Response message from handleMessage for database! : {}", msg);
 
@@ -120,6 +117,8 @@ public class DatabaseMessageHandler implements MessageHandler {
 						logger.error("FAILD TO AGAIN SEND TO DB", e);
 						break;
 					}
+					//TODO:
+					//If database is full then catch this exception and handle it
 				}
 			}
 		}, 0, SCHEDULE_TRY_AGAIN_WRITE_TIMEOUT, TimeUnit.SECONDS);
