@@ -104,7 +104,7 @@ public class SpringKafkaTaskApplication {
 			return;
 		}
 		
-		databaseMessageHandler.handleMessage(responseMsg);
+		//databaseMessageHandler.handleMessage(responseMsg);
 
 		sendMessageToTopicTwo(responseMsg.toString());
 
@@ -116,7 +116,8 @@ public class SpringKafkaTaskApplication {
 
 	@KafkaListener(topics = TOPIC_TWO)
 	public void listen2(ConsumerRecord<String, String> cr) throws Exception {
-		logger.info("Messages from topic 2 ", cr.toString());
+		logger.info("Messages from topic 2 ");
+		logger.info(cr.value());
 	}
 
 }
